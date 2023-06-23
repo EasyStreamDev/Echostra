@@ -68,7 +68,13 @@ def get_mics_list():
         p.terminate()
         raise Exception("Unsupported OS")
 
-    mics_list = _list_microphones(host_api_data)
+    mics_list = _list_microphones(host_api_data, p=p)
     p.terminate()
 
     return mics_list
+
+
+if __name__ == "__main__":
+    import pprint
+
+    pprint.pprint(get_mics_list())

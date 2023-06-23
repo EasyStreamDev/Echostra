@@ -82,6 +82,8 @@ def main():
                     break
     else:
         source = sr.Microphone(sample_rate=16000)
+        print(source.device_index)
+        exit()
 
     # Load / Download model
     model = args.model
