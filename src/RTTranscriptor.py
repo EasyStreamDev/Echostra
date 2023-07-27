@@ -179,7 +179,7 @@ if __name__ == "__main__":
         # Flush stdout
         print("", end="", flush=True)
 
-    t = RealTimeTranscriptor()
+    t = RealTimeTranscriptor(model_size=ModelSize.BASE)
 
     mic_index = get_mics_list()[1]["index"]
     t.run(mic_index=None, callback=_cb1, output_file="output.log")
