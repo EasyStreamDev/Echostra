@@ -77,4 +77,9 @@ def get_mics_list():
 if __name__ == "__main__":
     import pprint
 
+    # pprint.pprint(get_mics_list())
+    import speech_recognition as sr
+
+    print("---------------")
     pprint.pprint(get_mics_list())
+    print("---------------")

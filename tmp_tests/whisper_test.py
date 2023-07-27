@@ -76,10 +76,12 @@ def main():
                 print(f'Microphone with name "{name}" found')
             return
         else:
-            for index, name in enumerate(sr.Microphone.list_microphone_names()):
-                if mic_name in name:
-                    source = sr.Microphone(sample_rate=16000, device_index=index)
-                    break
+            source = sr.Microphone(sample_rate=16000, device_index=16)
+            # for index, name in enumerate(sr.Microphone.list_microphone_names()):
+            #     if mic_name in name:
+            #         print(f"===================== {index} =====================")
+            #         source = sr.Microphone(sample_rate=16000, device_index=index)
+            #         break
     else:
         source = sr.Microphone(sample_rate=16000)
         print(source.device_index)
@@ -98,6 +100,7 @@ def main():
 
     with source:
         recorder.adjust_for_ambient_noise(source)
+        print("--- done 1")
 
     def record_callback(_, audio: sr.AudioData) -> None:
         """
@@ -105,6 +108,7 @@ def main():
         audio: An AudioData containing the recorded bytes.
         """
         # Grab the raw bytes and push it into the thread safe queue.
+        print("[detecting...]")
         data = audio.get_raw_data()
         data_queue.put(data)
 
@@ -114,6 +118,7 @@ def main():
     recorder.listen_in_background(
         source, record_callback, phrase_time_limit=record_timeout
     )
+    print("--- done 2")
 
     # Cue the user that we're ready to go.
     print("Model loaded.\n")
