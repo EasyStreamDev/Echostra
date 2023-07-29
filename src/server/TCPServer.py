@@ -1,6 +1,7 @@
 import socket
 import threading
 import json
+from pprint import pprint
 
 from time import sleep
 
@@ -103,24 +104,31 @@ class TCPServer:
         # Waiting for all clients thread to terminate.
         while self._clients.items().__len__() != 0:
             self._remove_closed_connections()
-            sleep(50e-3)  # Sleep for 50ms
+            sleep(250e-3)  # Sleep for 250ms
 
     # Function to handle client connections
     def _handle_client_connect(self, client_socket: socket.socket, client_address: str):
+        global COMMAND_TO_METHOD
+
         print(f"Connected to client: {client_address}")
         exit_event: threading.Event = self._clients.get(client_address)["exit_event"]
 
         client_socket.sendall(TCPServer.CONNECTION_SUCCESS_MSG)
         # Receive and process client data
         while not exit_event.is_set():
-            data = client_socket.recv(1024)
-            if not data:
+            msg = client_socket.recv(1024)
+            if not msg:
                 break
-            # Process the received data
-            print(f"Received data from {client_address}: {data.decode()}")
 
-            # Echo the data back to the client
-            client_socket.sendall(data)
+            try:
+                # Process the received message
+                data: dict = json.loads(msg.decode())
+
+                COMMAND_TO_METHOD.get(
+                    data.get("command", None), TCPServer._cmd_default_handler
+                )(self, data, client_socket)
+            except:  # Ignore any error not supported
+                pass
 
         # Close the connection
         client_socket.close()
@@ -155,6 +163,17 @@ class TCPServer:
 
         for key, value in disconnected_clients.items():
             value["thread"].join()
+
+    def _cmd_default_handler(self, *args):
+        pass
+
+    def _cmd_setupStream(self, data: dict, client_socket: socket):
+        pprint(data)
+
+
+COMMAND_TO_METHOD = {
+    "setupStream": TCPServer._cmd_setupStream,
+}
 
 
 server = TCPServer(host=HOST, port=PORT)

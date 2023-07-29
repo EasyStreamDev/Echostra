@@ -28,4 +28,14 @@ test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connect(test_socket, HOST, PORT)
 
 while 1:
+    send(
+        test_socket,
+        json.dumps(
+            {
+                "command": "setupStream",
+                # "command": "invalidCommand",
+                "msg": "Hello world!",
+            }
+        ).encode(),
+    )
     time.sleep(1.0)
