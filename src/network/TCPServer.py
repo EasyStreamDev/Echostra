@@ -5,14 +5,21 @@ from pprint import pprint
 
 from time import sleep
 
+from .StreamSocket import StreamSocket
+from ..utils.ESThread import ESThread
+
 
 HOST = "127.0.0.1"  # Localhost
 PORT = 47921  # Port number
 
 
+def _dummyCallback(data: bytes):
+    print(f"Callback: {data.decode()}")
+
+
 class _ThreadSafeDict:
-    def __init__(self, val: dict = {}):
-        self._dict = val
+    def __init__(self, val: dict | None = None):
+        self._dict = val if val != None else dict()
         self._lock = threading.Lock()
 
     def __getitem__(self, key):
@@ -78,15 +85,14 @@ class TCPServer:
                 # Accept client connection
                 client_socket, client_address = self._server_socket.accept()
                 # Handle the client connection in a separate thread
-                client_thread = threading.Thread(
+                client_thread = ESThread(
                     target=self._handle_client_connect,
                     args=(client_socket, client_address),
                 )
                 # Add client and related thread to client list
                 self._clients[client_address] = {
                     "socket": client_socket,
-                    "thread": client_thread,
-                    "exit_event": threading.Event(),
+                    "esthread": client_thread,
                 }
                 # Start client thread
                 client_thread.start()
@@ -100,7 +106,8 @@ class TCPServer:
 
         # Tell every connection to stop functionning
         for key in self._clients:
-            self._clients.get(key)["exit_event"].set()
+            w: ESThread = self._clients.get(key)["esthread"]
+            w.stop()
         # Waiting for all clients thread to terminate.
         while self._clients.items().__len__() != 0:
             self._remove_closed_connections()
@@ -111,11 +118,11 @@ class TCPServer:
         global COMMAND_TO_METHOD
 
         print(f"Connected to client: {client_address}")
-        exit_event: threading.Event = self._clients.get(client_address)["exit_event"]
+        this_thread: ESThread = self._clients.get(client_address)["esthread"]
 
         client_socket.sendall(TCPServer.CONNECTION_SUCCESS_MSG)
         # Receive and process client data
-        while not exit_event.is_set():
+        while not this_thread.get_exit_event().is_set():
             msg = client_socket.recv(1024)
             if not msg:
                 break
@@ -126,7 +133,7 @@ class TCPServer:
 
                 COMMAND_TO_METHOD.get(
                     data.get("command", None), TCPServer._cmd_default_handler
-                )(self, data, client_socket)
+                )(self, this_thread, data, client_socket)
             except:  # Ignore any error not supported
                 pass
 
@@ -134,7 +141,6 @@ class TCPServer:
         client_socket.close()
         print(f"Connection closed with client: {client_address}")
 
-    # Function to remove closed client connection
     def _remove_closed_connections(self):
         """
         Removes closed connections from the `_clients` dictionary.
@@ -153,26 +159,68 @@ class TCPServer:
         disconnected_clients = dict()
 
         for key, value in self._clients.items():
-            if value["socket"].fileno() != -1 and value["thread"].is_alive():
+            if value["socket"].fileno() != -1 and value["esthread"].is_alive():
                 staying_clients[key] = value
             else:
+                w: ESThread = value["esthread"]
+                w.stop()
                 disconnected_clients[key] = value
-                value["exit_event"].set()
 
         self._clients = staying_clients
 
         for key, value in disconnected_clients.items():
-            value["thread"].join()
+            value["esthread"].join()
 
     def _cmd_default_handler(self, *args):
         pass
 
-    def _cmd_setupStream(self, data: dict, client_socket: socket):
-        pprint(data)
+    def _cmd_createStream(
+        self, this_thread: ESThread, data: dict, client_socket: socket.socket
+    ):
+        try:
+            print("\t--- Creating stream socket")
+            stream_socket: StreamSocket = StreamSocket(_dummyCallback)
+            print("\t--- Creating new thread")
+            stream_thread_exit_event: threading.Event = threading.Event()
+            stream_thread: ESThread = ESThread(
+                target=stream_socket.start,
+                exit_event=stream_thread_exit_event,
+                args=(stream_thread_exit_event,),
+            )
+            print("\t--- Starting new thread")
+            stream_thread.start()
+
+            this_thread.add_subthread(stream_thread)
+
+            print("\t--- Notifying requester of success")
+            # 3. Inform client socket about which port it should connect on.
+            client_socket.sendall(
+                json.dumps(
+                    {
+                        "message": "OK, ready to receive data.",
+                        "statusCode": 201,
+                        "port": stream_socket.get_port(),
+                    }
+                ).encode(),
+            )
+            print("\t--- Finished")
+        except socket.error:
+            client_socket.sendall(
+                json.dumps(
+                    {
+                        "message": "Failure, unable to perform request.",
+                        "statusCode": 500,
+                    }
+                ).encode(),
+            )
+
+    def _tmp_run_stream_socket(self, stream_socket: socket.socket):
+        # Todo, use StreamSocket class to handle this
+        client_socket, client_address = self._server_socket.accept()
 
 
 COMMAND_TO_METHOD = {
-    "setupStream": TCPServer._cmd_setupStream,
+    "createStream": TCPServer._cmd_createStream,
 }
 
 
