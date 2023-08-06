@@ -15,11 +15,10 @@ class StreamSocket:
         self._socket.listen()
 
     def start(self, exit_event: threading.Event):
-        found_connection: bool = False
-
-        while not exit_event.is_set() and not found_connection:
+        while not exit_event.is_set():
             try:
                 self._client_socket, _ = self._socket.accept()
+                break
             except TimeoutError:
                 continue
 
