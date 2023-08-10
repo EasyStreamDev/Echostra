@@ -33,7 +33,7 @@ if __name__ == "__main__":
     # Send request for creation of a transcription stream
     send(
         tcp_socket,
-        json.dumps({"command": "createStream"}).encode(),
+        json.dumps({"command": "createSTTStream"}).encode(),
     )
     # Get response
     response: dict = json.loads(receive(tcp_socket))
@@ -57,6 +57,6 @@ if __name__ == "__main__":
             while 1:
                 # Send dummy data to stream socket
                 send(stream_socket, "test".encode())
-                time.sleep(250e-3)  # Sleep 0.25 seconds
+                time.sleep(25e-3)  # Sleep 0.25 seconds
     except Exception as e:
         print(f"Did not work properly somewhere:\n{e}")

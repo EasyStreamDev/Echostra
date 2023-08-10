@@ -29,7 +29,7 @@ connect(test_socket, HOST, PORT)
 
 send(
     test_socket,
-    json.dumps({"command": "createStream"}).encode(),
+    json.dumps({"command": "createSTTStream"}).encode(),
 )
 
 while 1:

@@ -174,7 +174,7 @@ class TCPServer:
     def _cmd_default_handler(self, *args):
         pass
 
-    def _cmd_createStream(
+    def _cmd_createSTTStream(
         self, this_thread: ESThread, data: dict, client_socket: socket.socket
     ):
         try:
@@ -220,7 +220,7 @@ class TCPServer:
 
 
 COMMAND_TO_METHOD = {
-    "createStream": TCPServer._cmd_createStream,
+    "createSTTStream": TCPServer._cmd_createSTTStream,
 }
 
 
