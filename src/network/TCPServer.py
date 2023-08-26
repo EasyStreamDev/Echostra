@@ -5,8 +5,9 @@ from pprint import pprint
 
 from time import sleep
 
-from .StreamSocket import StreamSocket
-from ..utils.ESThread import ESThread
+from src.utils.ESThread import ESThread
+from src.transcription.audio.ESAudioStream import ESAudioStream
+from network.AudioStreamSocket import StreamSocket
 
 
 HOST = "127.0.0.1"  # Localhost
@@ -178,8 +179,10 @@ class TCPServer:
         self, this_thread: ESThread, data: dict, client_socket: socket.socket
     ):
         try:
+            print("\t--- Initializing audio stream")
+            es_audio_stream: ESAudioStream = ESAudioStream()
             print("\t--- Creating stream socket")
-            stream_socket: StreamSocket = StreamSocket(_dummyCallback)
+            stream_socket: StreamSocket = StreamSocket(es_audio_stream.write)
             print("\t--- Creating new thread")
             stream_thread_exit_event: threading.Event = threading.Event()
             stream_thread: ESThread = ESThread(

@@ -12,7 +12,7 @@ from typing import Callable, Union, List
 from torch import cuda
 from numpy import float32 as FLOAT32
 
-from model_parameters import ModelSize
+from src.transcription.model_parameters import ModelSize
 
 
 DEFAULT_OUTPUT_FILE = "transcript.log"
@@ -85,6 +85,9 @@ class RealTimeTranscriptor:
         SAMPLE_RATE: int
         SAMPLE_WIDTH: int
 
+        # @todo: set dynamic_energy_threshold to False
+        # @todo: check sr.Recognizer().adjust_for_ambient_noise
+
         # Getting audio source microphone.
         with sr.Microphone(sample_rate=16000, device_index=mic_index) as mic_source:
             # Adjusts the energy threshold dynamically using audio from source (an AudioSource instance) to account for ambient noise.
@@ -113,10 +116,10 @@ class RealTimeTranscriptor:
 
         while self.running:
             try:
-                now = datetime.utcnow()
+                now: datetime = datetime.utcnow()
                 # Pull raw recorded audio from the queue.
                 if not data_queue.empty():
-                    phrase_complete = False
+                    phrase_complete: bool = False
                     # If enough time has passed between recordings, consider the phrase complete.
                     # Clear the current working audio buffer to start over with the new data.
                     if phrase_time and now - phrase_time > timedelta(
@@ -168,7 +171,6 @@ class RealTimeTranscriptor:
 
 
 if __name__ == "__main__":
-    from mics_data import get_mics_list
     from pprint import pprint
 
     def _cb1(transcripts):
@@ -181,5 +183,4 @@ if __name__ == "__main__":
 
     t = RealTimeTranscriptor(model_size=ModelSize.BASE)
 
-    mic_index = get_mics_list()[1]["index"]
     t.run(mic_index=None, callback=_cb1, output_file="output.log")
