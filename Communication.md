@@ -17,6 +17,7 @@ The client requests the opening of a socket to which he can send audio data to b
 {
     "command": "createSTTStream",
     "params": {
+        "mic_id": "string", // Microphone's identifier
         "bit_depth": "integer", // Usually 8, 16, 24 or 32
         "sample_rate": "integer", // Usually 44100 or 48000
         "stereo": "boolean", // If false, condidered as mono
@@ -27,6 +28,8 @@ The client requests the opening of a socket to which he can send audio data to b
 * **Response**  
 ```json
 {
+    "type": "createSTTStream",
+    "mic_id": "string", // Microphone's identifier
     "statusCode": "integer", // 201: success ; 500: failure
     "message": "string",
     "port": "integer" // Port on which to connect to send the audio data
@@ -41,6 +44,8 @@ To send audio data to the opened socket, it is very important that you transfer 
 * **Transcription results**  
 ```json
 {
+    "type": "transcript",
+    "mic_id": "string", // Microphone's identifier
     "transcript": "string", // Transcription result
     "phrase_id": "integer", // ID of the transcribed phrase, the higher the more recent.
     "phrase_version": "integer" // Version of the transcribed phrase, the higher the more recent.

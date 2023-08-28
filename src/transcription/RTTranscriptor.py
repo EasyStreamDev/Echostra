@@ -49,7 +49,6 @@ class RealTimeTranscriptor:
 
     def run(
         self,
-        mic_index: int,
         callback: Callable[[List[str]], None] = None,
         output_file: Union[str, None] = None,
     ) -> None:
@@ -76,22 +75,12 @@ class RealTimeTranscriptor:
         last_sample = bytes()
         # Thread safe Queue for passing data from the threaded recording callback.
         data_queue = Queue()
-        # We use SpeechRecognizer to record our audio because it has a nice feauture where it can detect when speech ends.
-        recorder = sr.Recognizer()
-        recorder.energy_threshold = self.energy_threshold
-        # Necessary, dynamic energy compensation lowers the energy threshold dramtically to a point where the SpeechRecognizer never stops recording.
-        recorder.dynamic_energy_threshold = False
 
         SAMPLE_RATE: int
         SAMPLE_WIDTH: int
 
         # @todo: set dynamic_energy_threshold to False
         # @todo: check sr.Recognizer().adjust_for_ambient_noise
-
-        # Getting audio source microphone.
-        with sr.Microphone(sample_rate=16000, device_index=mic_index) as mic_source:
-            # Adjusts the energy threshold dynamically using audio from source (an AudioSource instance) to account for ambient noise.
-            recorder.adjust_for_ambient_noise(mic_source)
 
         def __record_callback(_, audio_data: sr.AudioData):
             """
@@ -101,18 +90,8 @@ class RealTimeTranscriptor:
             # Grab the raw bytes and push it into the thread safe queue.
             data_queue.put(audio_data.get_raw_data())
 
-        # Creates a background thread that will send raw audio bytes into the callback.
-        # We could do this manually but SpeechRecognizer provides a nice helper.
-        # @param phase_time_limit see: https://github.com/Uberi/speech_recognition/blob/master/reference/library-reference.rst#recognizer_instancelistensource-audiosource-timeout-unionfloat-none--none-phrase_time_limit-unionfloat-none--none-snowboy_configuration-uniontuplestr-iterablestr-none--none---audiodata
-        recorder.listen_in_background(
-            source=mic_source,
-            callback=__record_callback,
-            phrase_time_limit=self.record_timeout,
-        )
-
-        SAMPLE_RATE = mic_source.SAMPLE_RATE
-        SAMPLE_WIDTH = mic_source.SAMPLE_WIDTH
-        print("Listening...")
+        SAMPLE_RATE: int  # @dev: Needs to be set
+        SAMPLE_WIDTH: int  # @dev: Needs to be set
 
         while self.running:
             try:

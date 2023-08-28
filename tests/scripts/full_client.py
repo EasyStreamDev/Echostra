@@ -33,7 +33,17 @@ if __name__ == "__main__":
     # Send request for creation of a transcription stream
     send(
         tcp_socket,
-        json.dumps({"command": "createSTTStream"}).encode(),
+        json.dumps(
+            {
+                "command": "createSTTStream",
+                "params": {
+                    "mic_id": "",
+                    "bit_depth": 16,
+                    "sample_rate": 44.1e3,
+                    "stereo": False,
+                },
+            }
+        ).encode(),
     )
     # Get response
     response: dict = json.loads(receive(tcp_socket))
@@ -54,9 +64,19 @@ if __name__ == "__main__":
                 await_confirmation=False,
             )
 
-            while 1:
-                # Send dummy data to stream socket
-                send(stream_socket, "test".encode())
-                time.sleep(25e-3)  # Sleep 0.25 seconds
+            with open("./tests/audio/morning.raw", "rb") as f:
+                with open("./out.raw", "wb") as of:
+                    i = 0
+                    while True:
+                        buffer: bytes = f.read(1024)
+                        if len(buffer) == 0:
+                            break
+                        time.sleep(
+                            11.071428571e-3
+                        )  # Very approximative time to record before sending
+                        send(stream_socket, buffer)
+
+            # while True:
+            time.sleep(5.0)
     except Exception as e:
         print(f"Did not work properly somewhere:\n{e}")

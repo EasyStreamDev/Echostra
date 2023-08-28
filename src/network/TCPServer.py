@@ -7,7 +7,7 @@ from time import sleep
 
 from src.utils.ESThread import ESThread
 from src.transcription.audio.ESAudioStream import ESAudioStream
-from network.AudioStreamSocket import StreamSocket
+from src.network.AudioStreamSocket import StreamSocket
 
 
 HOST = "127.0.0.1"  # Localhost
@@ -179,20 +179,26 @@ class TCPServer:
         self, this_thread: ESThread, data: dict, client_socket: socket.socket
     ):
         try:
-            print("\t--- Initializing audio stream")
+            req_params: dict = data.get("params")
+
+            # print("\t--- Initializing audio stream")
             es_audio_stream: ESAudioStream = ESAudioStream()
-            print("\t--- Creating stream socket")
-            stream_socket: StreamSocket = StreamSocket(es_audio_stream.write)
-            print("\t--- Creating new thread")
+            # print("\t--- Creating stream socket")
+            stream_socket: StreamSocket = StreamSocket(
+                es_audio_stream.write,
+                req_params.get("bit_depth"),
+                req_params.get("sample_rate"),
+                req_params.get("stereo"),
+            )
+            # print("\t--- Creating new thread")
             stream_thread_exit_event: threading.Event = threading.Event()
             stream_thread: ESThread = ESThread(
                 target=stream_socket.start,
                 exit_event=stream_thread_exit_event,
                 args=(stream_thread_exit_event,),
             )
-            print("\t--- Starting new thread")
+            # print("\t--- Starting new thread")
             stream_thread.start()
-
             this_thread.add_subthread(stream_thread)
 
             print("\t--- Notifying requester of success")
@@ -200,6 +206,8 @@ class TCPServer:
             client_socket.sendall(
                 json.dumps(
                     {
+                        "type": "createSTTStream",
+                        "mic_id": req_params.get("mic_id"),
                         "message": "OK, ready to receive data.",
                         "statusCode": 201,
                         "port": stream_socket.get_port(),
@@ -211,6 +219,8 @@ class TCPServer:
             client_socket.sendall(
                 json.dumps(
                     {
+                        "type": "createSTTStream",
+                        "mic_id": req_params.get("mic_id"),
                         "message": "Failure, unable to perform request.",
                         "statusCode": 500,
                     }
