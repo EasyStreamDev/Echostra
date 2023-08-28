@@ -5,9 +5,8 @@ from pprint import pprint
 
 from time import sleep
 
+from src.TranscriberSocket import TranscriptSocket
 from src.utils.ESThread import ESThread
-from src.transcription.audio.ESAudioStream import ESAudioStream
-from src.network.AudioStreamSocket import StreamSocket
 
 
 HOST = "127.0.0.1"  # Localhost
@@ -181,11 +180,9 @@ class TCPServer:
         try:
             req_params: dict = data.get("params")
 
-            # print("\t--- Initializing audio stream")
-            es_audio_stream: ESAudioStream = ESAudioStream()
-            # print("\t--- Creating stream socket")
-            stream_socket: StreamSocket = StreamSocket(
-                es_audio_stream.write,
+            # print("\t--- Creating transcription stream socket")
+            stream_socket: TranscriptSocket = TranscriptSocket(
+                lambda x: print(x),
                 req_params.get("bit_depth"),
                 req_params.get("sample_rate"),
                 req_params.get("stereo"),
@@ -228,7 +225,7 @@ class TCPServer:
             )
 
     def _tmp_run_stream_socket(self, stream_socket: socket.socket):
-        # Todo, use StreamSocket class to handle this
+        # Todo, use TranscriptSocket class to handle this
         client_socket, client_address = self._server_socket.accept()
 
 

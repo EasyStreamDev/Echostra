@@ -64,19 +64,19 @@ if __name__ == "__main__":
                 await_confirmation=False,
             )
 
-            with open("./tests/audio/morning.raw", "rb") as f:
-                with open("./out.raw", "wb") as of:
-                    i = 0
-                    while True:
-                        buffer: bytes = f.read(1024)
-                        if len(buffer) == 0:
-                            break
-                        time.sleep(
-                            11.071428571e-3
-                        )  # Very approximative time to record before sending
-                        send(stream_socket, buffer)
+            with open("./tests/audio/saxophone.raw", "rb") as f:
+                i = 0
+                while True:
+                    buffer: bytes = f.read(1024)
+                    if len(buffer) == 0:
+                        break
+                    time.sleep(
+                        11.071428571e-3  # ~11.071 milliseconds
+                    )  # Very approximative time to record before sending
+                    send(stream_socket, buffer)
 
-            # while True:
-            time.sleep(5.0)
+            # To let transcriber finish before connexion closes.
+            # Otherwise, the transcription task would be dropped.
+            time.sleep(10.0)
     except Exception as e:
         print(f"Did not work properly somewhere:\n{e}")
