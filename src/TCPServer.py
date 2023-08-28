@@ -9,10 +9,6 @@ from src.TranscriberSocket import TranscriptSocket
 from src.utils.ESThread import ESThread
 
 
-HOST = "127.0.0.1"  # Localhost
-PORT = 47921  # Port number
-
-
 def _dummyCallback(data: bytes):
     print(f"Callback: {data.decode()}")
 
@@ -66,8 +62,10 @@ class TCPServer:
         # Set the variable in control of the server running.
         self._running: bool = False
 
+        # Storing host and port
+        self._host, self._port = host, port
         # Bind the socket to a specific host and port
-        self._server_socket.bind((host, port))
+        self._server_socket.bind((self._host, self._port))
         # Set the timeout for accepting client connections
         self._server_socket.settimeout(50e-3)  # Timeout set to 50ms
 
@@ -77,7 +75,7 @@ class TCPServer:
         self._server_socket.listen()
         self._running = True
 
-        print(f"TCP Server listening on {HOST}:{PORT}")
+        print(f"TCP Server listening on {self._host}:{self._port}")
 
         # Accept incoming connections in the main thread
         while self._running:
@@ -233,7 +231,6 @@ COMMAND_TO_METHOD = {
     "createSTTStream": TCPServer._cmd_createSTTStream,
 }
 
-
-server = TCPServer(host=HOST, port=PORT)
-
-server.run()
+if __name__ == "__main__":
+    server = TCPServer(host="127.0.0.1", port=47921)
+    server.run()
