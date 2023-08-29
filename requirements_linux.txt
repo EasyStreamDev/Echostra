@@ -29,6 +29,7 @@ PyAudio==0.2.13
 pycparser==2.21
 regex==2023.6.3
 requests==2.31.0
+resampy==0.4.2
 soundfile==0.12.1
 SpeechRecognition==3.10.0
 sympy==1.12
