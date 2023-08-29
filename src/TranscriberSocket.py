@@ -227,6 +227,7 @@ class TranscriptSocket:
         listener_thread = threading.Thread(target=threaded_listen)
         listener_thread.daemon = True
         listener_thread.start()
+        print("\t--- Listening to audio data.")
         return stopper
 
     # @todo: define "phrase_timeout"

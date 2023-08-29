@@ -184,6 +184,7 @@ class TCPServer:
                 version: int,
             ):
                 try:
+                    print("\t--- Sending transcription results.")
                     client_socket.sendall(
                         json.dumps(
                             {
@@ -195,24 +196,25 @@ class TCPServer:
                             }
                         ).encode()
                     )
+                    print("\t--- Sent")
                 except:
                     pass
 
-            # print("\t--- Creating transcription stream socket")
+            print("\t--- Creating transcription stream socket")
             stream_socket: TranscriptSocket = TranscriptSocket(
                 callback=_send_result_callback,
                 bit_depth=req_params.get("bit_depth"),
                 sample_rate=req_params.get("sample_rate"),
                 is_stereo=req_params.get("stereo"),
             )
-            # print("\t--- Creating new thread")
+            print("\t--- Creating new thread")
             stream_thread_exit_event: threading.Event = threading.Event()
             stream_thread: ESThread = ESThread(
                 target=stream_socket.start,
                 exit_event=stream_thread_exit_event,
                 args=(stream_thread_exit_event,),
             )
-            # print("\t--- Starting new thread")
+            print("\t--- Starting new thread")
             stream_thread.start()
             this_thread.add_subthread(stream_thread)
 
@@ -229,7 +231,7 @@ class TCPServer:
                     }
                 ).encode(),
             )
-            print("\t--- Finished")
+            print("\t--- Transcription launched!")
         except socket.error:
             client_socket.sendall(
                 json.dumps(
