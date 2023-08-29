@@ -114,12 +114,16 @@ class TCPServer:
         print(f"Connected to client: {client_address}")
         this_thread: ESThread = self._clients.get(client_address)["esthread"]
 
+        print("Sending connection success message.")
         client_socket.sendall(TCPServer.CONNECTION_SUCCESS_MSG)
+        print("Sent!")
         # Receive and process client data
         while not this_thread.get_exit_event().is_set():
+            print("Waiting data from client.")
             msg = client_socket.recv(1024)
             if not msg:
                 break
+            print(f"Received: {msg.decode()}")
 
             try:
                 # Process the received message
