@@ -140,7 +140,6 @@ class TranscriptSocket:
                 buffer = source.recv(self._data_chunk)
                 if len(buffer) == 0:
                     break  # reached end of the stream
-                print("Data received: silence")
                 frames.append(buffer)
                 if (
                     len(frames) > non_speaking_buffer_count
@@ -169,7 +168,6 @@ class TranscriptSocket:
                 buffer = source.recv(self._data_chunk)
                 if len(buffer) == 0:
                     break  # reached end of the stream
-                print("Data received: sentence")
                 frames.append(buffer)
                 phrase_count += 1
 
