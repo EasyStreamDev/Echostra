@@ -243,6 +243,8 @@ class TranscriptSocket:
         # --- Resets to 0 when new sentence detected
         phrase_version: int = 0
 
+        index = 0
+
         while not exit_event.is_set():
             now: datetime = datetime.utcnow()
 
@@ -272,8 +274,18 @@ class TranscriptSocket:
                     sample_rate=self._sample_rate,
                     sample_width=self._sample_width,
                 )
+
                 wav_stream = io.BytesIO(audio_data.get_wav_data())
                 audio_data, origin_sampling_rate = sf.read(wav_stream)
+
+                if phrase_complete:
+                    index += 1
+                sf.write(
+                    f"output_{index}.wav",
+                    audio_data,
+                    origin_sampling_rate,
+                )
+
                 audio_data = resampy.resample(
                     audio_data,
                     origin_sampling_rate,
@@ -296,6 +308,7 @@ class TranscriptSocket:
                 else:
                     phrase_version += 1
                     self._transcripts[-1] = text
+
                 self._cb(self._transcripts[-1], phrase_id, phrase_version)
 
                 # Infinite loops are bad for processors, must sleep.
