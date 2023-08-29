@@ -9,10 +9,6 @@ from src.TranscriberSocket import TranscriptSocket
 from src.utils.ESThread import ESThread
 
 
-def _dummyCallback(data: bytes):
-    print(f"Callback: {data.decode()}")
-
-
 class _ThreadSafeDict:
     def __init__(self, val: dict | None = None):
         self._dict = val if val != None else dict()
@@ -178,12 +174,32 @@ class TCPServer:
         try:
             req_params: dict = data.get("params")
 
+            def _send_result_callback(
+                transcript: str,
+                id: int,
+                version: int,
+            ):
+                try:
+                    client_socket.sendall(
+                        json.dumps(
+                            {
+                                "type": "transcript",
+                                "mic_id": req_params.get("mic_id", None),
+                                "transcript": transcript,
+                                "phrase_id": id,
+                                "phrase_version": version,
+                            }
+                        ).encode()
+                    )
+                except:
+                    pass
+
             # print("\t--- Creating transcription stream socket")
             stream_socket: TranscriptSocket = TranscriptSocket(
-                lambda x: print(x),
-                req_params.get("bit_depth"),
-                req_params.get("sample_rate"),
-                req_params.get("stereo"),
+                callback=_send_result_callback,
+                bit_depth=req_params.get("bit_depth"),
+                sample_rate=req_params.get("sample_rate"),
+                is_stereo=req_params.get("stereo"),
             )
             # print("\t--- Creating new thread")
             stream_thread_exit_event: threading.Event = threading.Event()
@@ -222,15 +238,7 @@ class TCPServer:
                 ).encode(),
             )
 
-    def _tmp_run_stream_socket(self, stream_socket: socket.socket):
-        # Todo, use TranscriptSocket class to handle this
-        client_socket, client_address = self._server_socket.accept()
-
 
 COMMAND_TO_METHOD = {
     "createSTTStream": TCPServer._cmd_createSTTStream,
 }
-
-if __name__ == "__main__":
-    server = TCPServer(host="127.0.0.1", port=47921)
-    server.run()

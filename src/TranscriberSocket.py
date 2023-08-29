@@ -90,7 +90,8 @@ class TranscriptSocket:
 
         # Receive audio data in background make pass it through sentence detector
         listener_stopper_func: callable = self._listen_in_background(
-            self._client_socket
+            self._client_socket,
+            phrase_time_limit=1.0,
         )
         self._transcribe(exit_event)
         # Stop listening in background
@@ -232,8 +233,14 @@ class TranscriptSocket:
         phrase_time = None
         # Current raw audio bytes.
         last_sample: bytes = bytes()
+        # @note: Yes the empty string is important
+        self._transcripts: list[str] = [""]
 
-        self._transcripts: list[str] = [""]  # @note: Yes the empty string is important
+        # Phrase identifier (incrementing each new sentence)
+        phrase_id: int = 0
+        # Phrase version (incrementing each new version of the same sentence)
+        # --- Resets to 0 when new sentence detected
+        phrase_version: int = 0
 
         while not exit_event.is_set():
             now: datetime = datetime.utcnow()
@@ -282,10 +289,13 @@ class TranscriptSocket:
                 # If we detected a pause between recordings, add a new item to our transcripion.
                 # Otherwise edit the existing one.
                 if phrase_complete:
+                    phrase_id += 1
+                    phrase_version = 0
                     self._transcripts.append(text)
                 else:
+                    phrase_version += 1
                     self._transcripts[-1] = text
-                self._cb(self._transcripts)
+                self._cb(self._transcripts[-1], phrase_id, phrase_version)
 
                 # Infinite loops are bad for processors, must sleep.
                 time.sleep(250e-3)  # Here: 250ms

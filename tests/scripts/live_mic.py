@@ -1,8 +1,9 @@
 import socket
-import time
+import threading
 import json
-
 import speech_recognition as sr
+
+from pprint import pprint
 
 HOST = "127.0.0.1"
 PORT = 47921  # The same port as used by the server
@@ -53,6 +54,24 @@ if __name__ == "__main__":
     try:
         # Check if connection request was accepted
         if response.get("statusCode", 404) == 201:
+            # Thread stopping variable
+            running = [True]
+
+            # Threaded function receiving transcriptions.
+            def on_transcription(s: socket.socket):
+                while running[0] == True:
+                    response: str = s.recv(1024).decode()
+                    data = json.loads(response)
+                    pprint(data)
+
+            # Start receiving messages in thread
+            receiver_thread = threading.Thread(
+                target=on_transcription,
+                args=(tcp_socket,),
+            )
+            receiver_thread.daemon = True
+            receiver_thread.start()
+
             # Get port to connect to in response
             port: int = response.get("port")
             # Prepare audio data stream socket
@@ -76,5 +95,8 @@ if __name__ == "__main__":
                         send(stream_socket, buffer)
             except KeyboardInterrupt:
                 pass
+
+            # Stop transcription-receiving thread
+            running[0] = False
     except Exception as e:
         print(f"Did not work properly somewhere:\n{e}")
