@@ -3,17 +3,17 @@ import math
 import socket
 import threading
 import time
-import queue
 import audioop
-import collections
 import whisper
-import resampy
 import soundfile as sf
 import speech_recognition as sr
 
 from torch import cuda
+from queue import Queue
+from collections import deque
 from datetime import datetime, timedelta
 from numpy import float32 as FLOAT32
+from resampy import resample as py_resample
 
 from src.utils.exceptions import WaitTimeoutError
 from src.utils.model_parameters import ModelSize
@@ -34,7 +34,7 @@ class TranscriptSocket:
         sample_rate: int,
         is_stereo: bool = False,
         data_chunk: int = 1024,
-        model_size: ModelSize = ModelSize.BASE,
+        model_size: ModelSize = ModelSize.TINY,
     ) -> None:
         # @todo: check if necessary
         self._cb: callable = callback
@@ -53,7 +53,7 @@ class TranscriptSocket:
         self._sample_rate: int = sample_rate
         self._stereo: bool = is_stereo
         self._energy_threshold = 300  # minimum audio energy to consider for recording
-        self._audiodata_queue: queue.Queue = queue.Queue()
+        self._audiodata_queue: Queue = Queue()
 
         # Prepare transcription model
         # --- Define model type (size)
@@ -127,7 +127,7 @@ class TranscriptSocket:
         buffer: bytes = b""  # an empty buffer means that the stream has ended and there is no data left to read
 
         while True:
-            frames = collections.deque()
+            frames = deque()
 
             while True:
                 # handle waiting too long for phrase by raising an exception
@@ -288,7 +288,7 @@ class TranscriptSocket:
                     origin_sampling_rate,
                 )
 
-                audio_data = resampy.resample(
+                audio_data = py_resample(
                     audio_data,
                     origin_sampling_rate,
                     SAMPLING_RATE_16K,  # This is the required sampling rate for transcribing with whisper.
