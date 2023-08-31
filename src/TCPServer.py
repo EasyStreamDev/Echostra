@@ -184,7 +184,6 @@ class TCPServer:
                 version: int,
             ):
                 try:
-                    print("\t--- Sending transcription results.")
                     client_socket.sendall(
                         json.dumps(
                             {
@@ -196,7 +195,6 @@ class TCPServer:
                             }
                         ).encode()
                     )
-                    print("\t--- Sent")
                 except:
                     pass
 

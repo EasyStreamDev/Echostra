@@ -15,6 +15,8 @@ from torch import cuda
 from datetime import datetime, timedelta
 from numpy import float32 as FLOAT32
 
+from faster_whisper import WhisperModel
+
 from src.utils.exceptions import WaitTimeoutError
 from src.utils.model_parameters import ModelSize
 
@@ -34,7 +36,7 @@ class TranscriptSocket:
         sample_rate: int,
         is_stereo: bool = False,
         data_chunk: int = 1024,
-        model_size: ModelSize = ModelSize.BASE,
+        model_size: ModelSize = ModelSize.TINY,
     ) -> None:
         # @todo: check if necessary
         self._cb: callable = callback
@@ -63,7 +65,8 @@ class TranscriptSocket:
             model_type_s = model_type_s + ".en"
         # --- Load model
         print("Loading model...", end=" ", flush=True)
-        self._whisper_model = whisper.load_model(model_type_s)
+        # self._whisper_model = whisper.load_model(model_type_s)
+        self._whisper_model = WhisperModel(model_size_or_path="tiny.en")
         print("Model loaded.")
 
         self._socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -91,11 +94,14 @@ class TranscriptSocket:
         # Receive audio data in background make pass it through sentence detector
         listener_stopper_func: callable = self._listen_in_background(
             self._client_socket,
-            phrase_time_limit=1.0,
+            phrase_time_limit=0.5,
         )
+        # Transcribe sentences until asked to stop
+        # --- Contains a loop, so when the program leaves this function, the thread will kill itself
         self._transcribe(exit_event)
         # Stop listening in background
         listener_stopper_func()
+        print("--- Transcribing threads were closed correctly.")
 
     def _listen(
         self,
@@ -140,7 +146,7 @@ class TranscriptSocket:
                 buffer = source.recv(self._data_chunk)
                 if len(buffer) == 0:
                     break  # reached end of the stream
-                print("Data received: silence")
+                # print("Data received: silence")
                 frames.append(buffer)
                 if (
                     len(frames) > non_speaking_buffer_count
@@ -169,7 +175,7 @@ class TranscriptSocket:
                 buffer = source.recv(self._data_chunk)
                 if len(buffer) == 0:
                     break  # reached end of the stream
-                print("Data received: sentence")
+                # print("Data received: sentence")
                 frames.append(buffer)
                 phrase_count += 1
 
@@ -245,7 +251,7 @@ class TranscriptSocket:
         # --- Resets to 0 when new sentence detected
         phrase_version: int = 0
 
-        index = 0
+        # index = 0
 
         while not exit_event.is_set():
             now: datetime = datetime.utcnow()
@@ -280,13 +286,13 @@ class TranscriptSocket:
                 wav_stream = io.BytesIO(audio_data.get_wav_data())
                 audio_data, origin_sampling_rate = sf.read(wav_stream)
 
-                if phrase_complete:
-                    index += 1
-                sf.write(
-                    f"output_{index}.wav",
-                    audio_data,
-                    origin_sampling_rate,
-                )
+                # if phrase_complete:
+                #     index += 1
+                # sf.write(
+                #     f"output_{index}.wav",
+                #     audio_data,
+                #     origin_sampling_rate,
+                # )
 
                 audio_data = resampy.resample(
                     audio_data,
@@ -296,10 +302,15 @@ class TranscriptSocket:
                 audio_data = audio_data.astype(FLOAT32)
 
                 # Read the transcription.
-                result = self._whisper_model.transcribe(
-                    audio_data, fp16=cuda.is_available()
-                )
-                text: str = result["text"].strip()
+                # result = self._whisper_model.transcribe(
+                #     audio_data, fp16=cuda.is_available()
+                # )
+                # text: str = result["text"].strip()
+
+                text: str = ""
+                results, info = self._whisper_model.transcribe(audio_data)
+                results = list(results)
+                text = results[-1].text.strip()
 
                 # If we detected a pause between recordings, add a new item to our transcripion.
                 # Otherwise edit the existing one.
@@ -314,7 +325,7 @@ class TranscriptSocket:
                 self._cb(self._transcripts[-1], phrase_id, phrase_version)
 
                 # Infinite loops are bad for processors, must sleep.
-                time.sleep(250e-3)  # Here: 250ms
+                time.sleep(100e-3)  # Here: 100ms
 
     def is_running(self) -> bool:
         return False if not self._exit_event or not self._exit_event.is_set() else True
