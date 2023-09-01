@@ -109,7 +109,7 @@ class TranscriptSocket:
             >= 0
         )
 
-        i = 0  # @debug
+        exit_condition: bool = False
         source.settimeout(None)
 
         seconds_per_buffer: float = float(self._data_chunk) / self._sample_rate
@@ -126,7 +126,7 @@ class TranscriptSocket:
         elapsed_time = 0  # number of seconds of audio read
         buffer: bytes = b""  # an empty buffer means that the stream has ended and there is no data left to read
 
-        while True:
+        while not exit_condition:
             frames = deque()
 
             while True:
@@ -139,8 +139,10 @@ class TranscriptSocket:
 
                 buffer = source.recv(self._data_chunk)
                 if len(buffer) == 0:
+                    if not self._exit_event.is_set():
+                        self._exit_event.set()
                     break  # reached end of the stream
-                print("Data received: silence")
+                # print("Data received: silence")
                 frames.append(buffer)
                 if (
                     len(frames) > non_speaking_buffer_count
@@ -168,8 +170,10 @@ class TranscriptSocket:
 
                 buffer = source.recv(self._data_chunk)
                 if len(buffer) == 0:
+                    if not self._exit_event.is_set():
+                        self._exit_event.set()
                     break  # reached end of the stream
-                print("Data received: sentence")
+                # print("Data received: sentence")
                 frames.append(buffer)
                 phrase_count += 1
 
@@ -193,7 +197,7 @@ class TranscriptSocket:
                 break  # phrase is long enough or we've reached the end of the stream, so stop listening
 
         # obtain frame data
-        for i in range(pause_count - non_speaking_buffer_count):
+        for _ in range(pause_count - non_speaking_buffer_count):
             frames.pop()  # remove extra non-speaking frames at the end
         frame_data = b"".join(frames)
 
@@ -230,7 +234,6 @@ class TranscriptSocket:
         print("\t--- Listening to audio data.")
         return stopper
 
-    # @todo: define "phrase_timeout"
     def _transcribe(self, exit_event: threading.Event, phrase_timeout: float = 3.0):
         # The last time a recording was retreived from the queue: @see self._audiodata_queue below
         phrase_time = None
@@ -245,7 +248,7 @@ class TranscriptSocket:
         # --- Resets to 0 when new sentence detected
         phrase_version: int = 0
 
-        index = 0
+        # index = 0
 
         while not exit_event.is_set():
             now: datetime = datetime.utcnow()
@@ -269,6 +272,7 @@ class TranscriptSocket:
                 while not self._audiodata_queue.empty():
                     data = self._audiodata_queue.get()
                     last_sample += data
+                print(f"Size of audio to transcribe: {len(last_sample)}")
 
                 # Use AudioData to convert the raw data to wav data.
                 audio_data = sr.AudioData(
@@ -280,13 +284,13 @@ class TranscriptSocket:
                 wav_stream = io.BytesIO(audio_data.get_wav_data())
                 audio_data, origin_sampling_rate = sf.read(wav_stream)
 
-                if phrase_complete:
-                    index += 1
-                sf.write(
-                    f"output_{index}.wav",
-                    audio_data,
-                    origin_sampling_rate,
-                )
+                # if phrase_complete:
+                #     index += 1
+                # sf.write(
+                #     f"output_{index}.wav",
+                #     audio_data,
+                #     origin_sampling_rate,
+                # )
 
                 audio_data = py_resample(
                     audio_data,
