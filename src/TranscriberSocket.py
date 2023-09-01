@@ -132,7 +132,7 @@ class TranscriptSocket:
         elapsed_time = 0  # number of seconds of audio read
         buffer: bytes = b""  # an empty buffer means that the stream has ended and there is no data left to read
 
-        while True:
+        while not self._exit_event.is_set():
             frames = collections.deque()
 
             while True:
@@ -145,6 +145,8 @@ class TranscriptSocket:
 
                 buffer = source.recv(self._data_chunk)
                 if len(buffer) == 0:
+                    if not self._exit_event.is_set():
+                        self._exit_event.set()
                     break  # reached end of the stream
                 # print("Data received: silence")
                 frames.append(buffer)
@@ -174,6 +176,8 @@ class TranscriptSocket:
 
                 buffer = source.recv(self._data_chunk)
                 if len(buffer) == 0:
+                    if not self._exit_event.is_set():
+                        self._exit_event.set()
                     break  # reached end of the stream
                 # print("Data received: sentence")
                 frames.append(buffer)
@@ -310,7 +314,8 @@ class TranscriptSocket:
                 text: str = ""
                 results, info = self._whisper_model.transcribe(audio_data)
                 results = list(results)
-                text = results[-1].text.strip()
+                if len(results) != 0:
+                    text = results[-1].text.strip()
 
                 # If we detected a pause between recordings, add a new item to our transcripion.
                 # Otherwise edit the existing one.
