@@ -1,7 +1,9 @@
+beautifulsoup4==4.12.2
 certifi==2023.7.22
 cffi==1.16.0
 charset-normalizer==3.3.2
 cmake==3.27.7
+deep-translator==1.11.4
 filelock==3.13.1
 idna==3.4
 Jinja2==3.1.2
@@ -30,6 +32,7 @@ regex==2023.10.3
 requests==2.31.0
 resampy==0.4.2
 soundfile==0.12.1
+soupsieve==2.5
 SpeechRecognition==3.10.0
 sympy==1.12
 tiktoken==0.5.1

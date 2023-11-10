@@ -18,7 +18,6 @@ from resampy import resample as py_resample
 from src.utils.exceptions import WaitTimeoutError
 from src.utils.model_parameters import ModelSize
 
-
 SAMPLING_RATE_16K: int = 16000
 
 
@@ -60,7 +59,7 @@ class TranscriptSocket:
         self._whisper_model_type: ModelSize = model_size
         model_type_s: str = self._whisper_model_type.value
         if self._whisper_model_type != ModelSize.LARGE:
-            model_type_s = model_type_s + ".en"
+            model_type_s = model_type_s  # + ".en"
         # --- Load model
         print("Loading model...", end=" ", flush=True)
         self._whisper_model = whisper.load_model(model_type_s)
