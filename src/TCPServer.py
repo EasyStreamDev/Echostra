@@ -7,6 +7,7 @@ from time import sleep
 
 from src.TranscriberSocket import TranscriptSocket
 from src.utils.ESThread import ESThread
+from deep_translator import GoogleTranslator
 
 
 class _ThreadSafeDict:
@@ -184,6 +185,9 @@ class TCPServer:
                 version: int,
             ):
                 try:
+                    transcript = GoogleTranslator(source="auto", target="fr").translate(
+                        transcript
+                    )
                     print("\t--- Sending transcription results.")
                     client_socket.sendall(
                         json.dumps(
