@@ -183,11 +183,13 @@ class TCPServer:
                 transcript: str,
                 id: int,
                 version: int,
+                language: str
             ):
                 try:
-                    transcript = GoogleTranslator(source="auto", target="fr").translate(
-                        transcript
-                    )
+
+                    if language != "none":
+                        transcript = GoogleTranslator(source="auto", target=language).translate(transcript)
+
                     print("\t--- Sending transcription results.")
                     client_socket.sendall(
                         json.dumps(
@@ -210,6 +212,7 @@ class TCPServer:
                 bit_depth=req_params.get("bit_depth"),
                 sample_rate=req_params.get("sample_rate"),
                 is_stereo=req_params.get("stereo"),
+                language=req_params.get("language")
             )
             print("\t--- Creating new thread")
             stream_thread_exit_event: threading.Event = threading.Event()
@@ -247,7 +250,6 @@ class TCPServer:
                     }
                 ).encode(),
             )
-
 
 COMMAND_TO_METHOD = {
     "createSTTStream": TCPServer._cmd_createSTTStream,
