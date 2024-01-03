@@ -34,6 +34,7 @@ class TranscriptSocket:
         is_stereo: bool = False,
         data_chunk: int = 1024,
         model_size: ModelSize = ModelSize.BASE,
+        language: str = "none"
     ) -> None:
         # @todo: check if necessary
         self._cb: callable = callback
@@ -53,13 +54,14 @@ class TranscriptSocket:
         self._stereo: bool = is_stereo
         self._energy_threshold = 300  # minimum audio energy to consider for recording
         self._audiodata_queue: Queue = Queue()
+        self.language = language
 
         # Prepare transcription model
         # --- Define model type (size)
         self._whisper_model_type: ModelSize = model_size
         model_type_s: str = self._whisper_model_type.value
         if self._whisper_model_type != ModelSize.LARGE:
-            model_type_s = model_type_s  # + ".en"
+            model_type_s = model_type_s  #+ ".en"
         # --- Load model
         print("Loading model...", end=" ", flush=True)
         self._whisper_model = whisper.load_model(model_type_s)
@@ -315,7 +317,7 @@ class TranscriptSocket:
                     phrase_version += 1
                     self._transcripts[-1] = text
 
-                self._cb(self._transcripts[-1], phrase_id, phrase_version)
+                self._cb(self._transcripts[-1], phrase_id, phrase_version, self.language)
 
                 # Infinite loops are bad for processors, must sleep.
                 time.sleep(250e-3)  # Here: 250ms
